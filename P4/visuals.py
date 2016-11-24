@@ -3,6 +3,7 @@
 # Necessary for newer version of matplotlib
 import warnings
 warnings.filterwarnings("ignore", category = UserWarning, module = "matplotlib")
+###########################################
 #
 # Display inline matplotlib plots with IPython
 from IPython import get_ipython
@@ -10,154 +11,197 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 ###########################################
 
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import pandas as pd
 import numpy as np
-
-def pca_results(good_data, pca):
-	'''
-	Create a DataFrame of the PCA results
-	Includes dimension feature weights and explained variance
-	Visualizes the PCA results
-	'''
-
-	# Dimension indexing
-	dimensions = dimensions = ['Dimension {}'.format(i) for i in range(1,len(pca.components_)+1)]
-
-	# PCA components
-	components = pd.DataFrame(np.round(pca.components_, 4), columns = good_data.keys())
-	components.index = dimensions
-
-	# PCA explained variance
-	ratios = pca.explained_variance_ratio_.reshape(len(pca.components_), 1)
-	variance_ratios = pd.DataFrame(np.round(ratios, 4), columns = ['Explained Variance'])
-	variance_ratios.index = dimensions
-
-	# Create a bar plot visualization
-	fig, ax = plt.subplots(figsize = (14,8))
-
-	# Plot the feature weights as a function of the components
-	components.plot(ax = ax, kind = 'bar');
-	ax.set_ylabel("Feature Weights")
-	ax.set_xticklabels(dimensions, rotation=0)
+import pandas as pd
+import os
+import ast
 
 
-	# Display the explained variance ratios
-	for i, ev in enumerate(pca.explained_variance_ratio_):
-		ax.text(i-0.40, ax.get_ylim()[1] + 0.05, "Explained Variance\n          %.4f"%(ev))
+def calculate_safety(data):
+	""" Calculates the safety rating of the smartcab during testing. """
 
-	# Return a concatenated DataFrame
-	return pd.concat([variance_ratios, components], axis = 1)
+	good_ratio = data['good_actions'].sum() * 1.0 / \
+	(data['initial_deadline'] - data['final_deadline']).sum()
 
-def cluster_results(reduced_data, preds, centers, pca_samples):
-	'''
-	Visualizes the PCA-reduced cluster data in two dimensions
-	Adds cues for cluster centers and student-selected sample data
-	'''
-
-	predictions = pd.DataFrame(preds, columns = ['Cluster'])
-	plot_data = pd.concat([predictions, reduced_data], axis = 1)
-
-	# Generate the cluster plot
-	fig, ax = plt.subplots(figsize = (14,8))
-
-	# Color map
-	cmap = cm.get_cmap('gist_rainbow')
-
-	# Color the points based on assigned cluster
-	for i, cluster in plot_data.groupby('Cluster'):   
-	    cluster.plot(ax = ax, kind = 'scatter', x = 'Dimension 1', y = 'Dimension 2', \
-	                 color = cmap((i)*1.0/(len(centers)-1)), label = 'Cluster %i'%(i), s=30);
-
-	# Plot centers with indicators
-	for i, c in enumerate(centers):
-	    ax.scatter(x = c[0], y = c[1], color = 'white', edgecolors = 'black', \
-	               alpha = 1, linewidth = 2, marker = 'o', s=200);
-	    ax.scatter(x = c[0], y = c[1], marker='$%d$'%(i), alpha = 1, s=100);
-
-	# Plot transformed sample points 
-	ax.scatter(x = pca_samples[:,0], y = pca_samples[:,1], \
-	           s = 150, linewidth = 4, color = 'black', marker = 'x');
-
-	# Set plot title
-	ax.set_title("Cluster Learning on PCA-Reduced Data - Centroids Marked by Number\nTransformed Sample Data Marked by Black Cross");
+	if good_ratio == 1: # Perfect driving
+		return ("A+", "green")
+	else: # Imperfect driving
+		if data['actions'].apply(lambda x: ast.literal_eval(x)[4]).sum() > 0: # Major accident
+			return ("F", "red")
+		elif data['actions'].apply(lambda x: ast.literal_eval(x)[3]).sum() > 0: # Minor accident
+			return ("D", "#EEC700")
+		elif data['actions'].apply(lambda x: ast.literal_eval(x)[2]).sum() > 0: # Major violation
+			return ("C", "#EEC700")
+		else: # Minor violation
+			minor = data['actions'].apply(lambda x: ast.literal_eval(x)[1]).sum()
+			if minor >= len(data)/2: # Minor violation in at least half of the trials
+				return ("B", "green")
+			else:
+				return ("A", "green")
 
 
-def biplot(good_data, reduced_data, pca):
-    '''
-    Produce a biplot that shows a scatterplot of the reduced
-    data and the projections of the original features.
-    
-    good_data: original data, before transformation.
-               Needs to be a pandas dataframe with valid column names
-    reduced_data: the reduced data (the first two dimensions are plotted)
-    pca: pca object that contains the components_ attribute
+def calculate_reliability(data):
+	""" Calculates the reliability rating of the smartcab during testing. """
 
-    return: a matplotlib AxesSubplot object (for any additional customization)
-    
-    This procedure is inspired by the script:
-    https://github.com/teddyroland/python-biplot
-    '''
+	success_ratio = data['success'].sum() * 1.0 / len(data)
 
-    fig, ax = plt.subplots(figsize = (14,8))
-    # scatterplot of the reduced data    
-    ax.scatter(x=reduced_data.loc[:, 'Dimension 1'], y=reduced_data.loc[:, 'Dimension 2'], 
-        facecolors='b', edgecolors='b', s=70, alpha=0.5)
-    
-    feature_vectors = pca.components_.T
+	if success_ratio == 1: # Always meets deadline
+		return ("A+", "green")
+	else:
+		if success_ratio >= 0.90:
+			return ("A", "green")
+		elif success_ratio >= 0.80:
+			return ("B", "green")
+		elif success_ratio >= 0.70:
+			return ("C", "#EEC700")
+		elif success_ratio >= 0.60:
+			return ("D", "#EEC700")
+		else:
+			return ("F", "red")
 
-    # we use scaling factors to make the arrows easier to see
-    arrow_size, text_pos = 7.0, 8.0,
 
-    # projections of the original features
-    for i, v in enumerate(feature_vectors):
-        ax.arrow(0, 0, arrow_size*v[0], arrow_size*v[1], 
-                  head_width=0.2, head_length=0.2, linewidth=2, color='red')
-        ax.text(v[0]*text_pos, v[1]*text_pos, good_data.columns[i], color='black', 
-                 ha='center', va='center', fontsize=18)
+def plot_trials(csv):
+	""" Plots the data from logged metrics during a simulation."""
 
-    ax.set_xlabel("Dimension 1", fontsize=14)
-    ax.set_ylabel("Dimension 2", fontsize=14)
-    ax.set_title("PC plane with original feature projections.", fontsize=16);
-    return ax
-    
+	data = pd.read_csv(os.path.join("logs", csv))
 
-def channel_results(reduced_data, outliers, pca_samples):
-	'''
-	Visualizes the PCA-reduced cluster data in two dimensions using the full dataset
-	Data is labeled by "Channel" and cues added for student-selected sample data
-	'''
-
-	# Check that the dataset is loadable
-	try:
-	    full_data = pd.read_csv("customers.csv")
-	except:
-	    print "Dataset could not be loaded. Is the file missing?"
-	    return False
-
-	# Create the Channel DataFrame
-	channel = pd.DataFrame(full_data['Channel'], columns = ['Channel'])
-	channel = channel.drop(channel.index[outliers]).reset_index(drop = True)
-	labeled = pd.concat([reduced_data, channel], axis = 1)
+	if len(data) < 10:
+		print "Not enough data collected to create a visualization."
+		print "At least 20 trials are required."
+		return
 	
-	# Generate the cluster plot
-	fig, ax = plt.subplots(figsize = (14,8))
+	# Create additional features
+	data['average_reward'] = (data['net_reward'] / (data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['reliability_rate'] = (data['success']*100).rolling(window=10, center=False).mean()  # compute avg. net reward with window=10
+	data['good_actions'] = data['actions'].apply(lambda x: ast.literal_eval(x)[0])
+	data['good'] = (data['good_actions'] * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['minor'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[1]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['major'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[2]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['minor_acc'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[3]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['major_acc'] = (data['actions'].apply(lambda x: ast.literal_eval(x)[4]) * 1.0 / \
+		(data['initial_deadline'] - data['final_deadline'])).rolling(window=10, center=False).mean()
+	data['epsilon'] = data['parameters'].apply(lambda x: ast.literal_eval(x)['e']) 
+	data['alpha'] = data['parameters'].apply(lambda x: ast.literal_eval(x)['a']) 
 
-	# Color map
-	cmap = cm.get_cmap('gist_rainbow')
 
-	# Color the points based on assigned Channel
-	labels = ['Hotel/Restaurant/Cafe', 'Retailer']
-	grouped = labeled.groupby('Channel')
-	for i, channel in grouped:   
-	    channel.plot(ax = ax, kind = 'scatter', x = 'Dimension 1', y = 'Dimension 2', \
-	                 color = cmap((i-1)*1.0/2), label = labels[i-1], s=30);
-	    
-	# Plot transformed sample points   
-	for i, sample in enumerate(pca_samples):
-		ax.scatter(x = sample[0], y = sample[1], \
-	           s = 200, linewidth = 3, color = 'black', marker = 'o', facecolors = 'none');
-		ax.scatter(x = sample[0]+0.25, y = sample[1]+0.3, marker='$%d$'%(i), alpha = 1, s=125);
+	# Create training and testing subsets
+	training_data = data[data['testing'] == False]
+	testing_data = data[data['testing'] == True]
 
-	# Set plot title
-	ax.set_title("PCA-Reduced Data Labeled by 'Channel'\nTransformed Sample Data Circled");
+	plt.figure(figsize=(12,8))
+
+
+	###############
+	### Average step reward plot
+	###############
+	
+	ax = plt.subplot2grid((6,6), (0,3), colspan=3, rowspan=2)
+	ax.set_title("10-Trial Rolling Average Reward per Action")
+	ax.set_ylabel("Reward per Action")
+	ax.set_xlabel("Trial Number")
+	ax.set_xlim((10, len(training_data)))
+
+	# Create plot-specific data
+	step = training_data[['trial','average_reward']].dropna()
+
+	ax.axhline(xmin = 0, xmax = 1, y = 0, color = 'black', linestyle = 'dashed')
+	ax.plot(step['trial'], step['average_reward'])
+
+
+	###############
+	### Parameters Plot
+	###############
+
+	ax = plt.subplot2grid((6,6), (2,3), colspan=3, rowspan=2)
+
+	# Check whether the agent was expected to learn
+	if csv != 'sim_no-learning.csv':
+		ax.set_ylabel("Parameter Value")
+		ax.set_xlabel("Trial Number")
+		ax.set_xlim((1, len(training_data)))
+		ax.set_ylim((0, 1.05))
+
+		ax.plot(training_data['trial'], training_data['epsilon'], color='blue', label='Exploration factor')
+		ax.plot(training_data['trial'], training_data['alpha'], color='green', label='Learning factor')
+
+		ax.legend(bbox_to_anchor=(0.5,1.19), fancybox=True, ncol=2, loc='upper center', fontsize=10)
+
+	else:
+		ax.axis('off')
+		ax.text(0.52, 0.30, "Simulation completed\nwith learning disabled.", fontsize=24, ha='center', style='italic')	
+
+
+	###############
+	### Bad Actions Plot
+	###############
+	
+	actions = training_data[['trial','good', 'minor','major','minor_acc','major_acc']].dropna()
+	maximum = (1 - actions['good']).values.max()
+	
+	ax = plt.subplot2grid((6,6), (0,0), colspan=3, rowspan=4)
+	ax.set_title("10-Trial Rolling Relative Frequency of Bad Actions")
+	ax.set_ylabel("Relative Frequency")
+	ax.set_xlabel("Trial Number")
+
+	ax.set_ylim((0, maximum + 0.01))
+	ax.set_xlim((10, len(training_data)))
+
+	ax.set_yticks(np.linspace(0, maximum+0.01, 10))
+
+	ax.plot(actions['trial'], (1 - actions['good']), color='black', label='Total Bad Actions', linestyle='dotted', linewidth=3)
+	ax.plot(actions['trial'], actions['minor'], color='orange', label='Minor Violation', linestyle='dashed')
+	ax.plot(actions['trial'], actions['major'], color='orange', label='Major Violation', linewidth=2)
+	ax.plot(actions['trial'], actions['minor_acc'], color='red', label='Minor Accident', linestyle='dashed')
+	ax.plot(actions['trial'], actions['major_acc'], color='red', label='Major Accident', linewidth=2)
+	
+	ax.legend(loc='upper right', fancybox=True, fontsize=10)
+
+
+	###############
+	### Rolling Success-Rate plot
+	###############
+	
+	ax = plt.subplot2grid((6,6), (4,0), colspan=4, rowspan=2)
+	ax.set_title("10-Trial Rolling Rate of Reliability")
+	ax.set_ylabel("Rate of Reliability")
+	ax.set_xlabel("Trial Number")
+	ax.set_xlim((10, len(training_data)))
+	ax.set_ylim((-5, 105))
+	ax.set_yticks(np.arange(0, 101, 20))
+	ax.set_yticklabels(['0%', '20%', '40%', '60%', '80%', '100%'])
+
+	# Create plot-specific data
+	trial = training_data.dropna()['trial']
+	rate = training_data.dropna()['reliability_rate']
+
+	# Rolling success rate
+	ax.plot(trial, rate, label="Reliability Rate", color='blue')
+
+
+	###############
+	### Test results
+	###############
+
+	ax = plt.subplot2grid((6,6), (4,4), colspan=2, rowspan=2)
+	ax.axis('off')
+
+	if len(testing_data) > 0:
+		safety_rating, safety_color = calculate_safety(testing_data)
+		reliability_rating, reliability_color = calculate_reliability(testing_data)
+
+		# Write success rate
+		ax.text(0.40, .9, "{} testing trials simulated.".format(len(testing_data)), fontsize=14, ha='center')
+		ax.text(0.40, 0.7, "Safety Rating:", fontsize=16, ha='center')
+		ax.text(0.40, 0.42, "{}".format(safety_rating), fontsize=40, ha='center', color=safety_color)
+		ax.text(0.40, 0.27, "Reliability Rating:", fontsize=16, ha='center')
+		ax.text(0.40, 0, "{}".format(reliability_rating), fontsize=40, ha='center', color=reliability_color)
+
+	else:
+		ax.text(0.36, 0.30, "Simulation completed\nwith testing disabled.", fontsize=20, ha='center', style='italic')	
+
+	plt.tight_layout()
+	plt.show()
