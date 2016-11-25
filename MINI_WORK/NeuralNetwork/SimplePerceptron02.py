@@ -44,9 +44,9 @@ class Perceptron:
 # Part 1: Set up the perceptron network
 Network = [
     # input layer, declare input layer perceptrons here
-    [ ... ], \
+    [Perceptron(np.array([1,0]),.5), Perceptron(np.array([0,1]),.5)] , \
     # output node, declare output layer perceptron here
-    [ ... ]
+    [Perceptron(np.array([1,1]),1.5)]
 ]
 
 # Part 2: Define a procedure to compute the output of the network, given inputs
@@ -58,7 +58,11 @@ def EvalNetwork(inputValues, Network):
     """
 
     # YOUR CODE HERE
-
+    #OR
+    OR = Network[0][0].activate(inputValues) + Network[0][1].activate(inputValues)
+    #AND
+    AND = 2 * Network[1][0].activate([Network[0][0].activate(inputValues), Network[0][1].activate(inputValues)])
+    OutputValue = OR - AND
     # Be sure your output value is a single number
     return OutputValue
 
