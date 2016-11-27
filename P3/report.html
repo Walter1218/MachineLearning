@@ -573,7 +573,7 @@ div#notebook {
 <p><strong>回答:</strong> 尝试预测了fresh,milk,frozen,Detergents_Paper,Delicatessen和Grocery的特征，预测最后发现最满意的预测的分是对特征Grocery特征，得分是0.68188.而fresh得分为-0.38575，milk:0.15628,frozen:-0.21013,Detergents_Paper:0.27167,Delicatessen:-2.2547.
 该特征的得分在0.68188。
 Grocery， milk, Detergents_Paper 
-证明我们根据其他五个特征能够相对满意的来预测该特征，所以这个特征对于区分用户的消费习惯有一定帮助。但例如milk,frozen,Detergents_paper和Delicatessm则对于区分用户消费习惯来说目前而言没有发现必要的联系或者线索。</p>
+证明我们根据其他五个特征能够相对满意的来预测该特征，所以这个特征实际上可以由其他五个特征来得出，但并不是必要的用来区分用户消费习惯的。</p>
 
 </div>
 </div>
@@ -2373,7 +2373,7 @@ Ny7+WPF7swAAAABJRU5ErkJggg==
 <p><strong>回答:</strong> 从图中可以看出，有些特征彼此之间存在一定的关联性；
 从图中我们可以看出MILK与GROCERY，MILK与DETERGENTS PAPER，GROCERY与DETERGENTS PAPER存在明显的关联性。
 图中的这些关联性结果也验证了我们上面所列举的R^2指标所输出的评分，GROCERY:0.68188；MILK:0.15628；DETERGENTS PAPER:0.27167
-这些特征数据不呈现明显的正态分布。大多数数据点分布在0-10000附近,并且主要聚集在右侧。</p>
+这些特征数据不呈现明显的正态分布。大多数数据点分布在0-10000附近,并且主要聚集在左侧，靠近0的一侧。</p>
 
 </div>
 </div>
@@ -7363,10 +7363,10 @@ RU5ErkJggg==
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><strong>回答:</strong> 第一个主成分的解释方差为0.4993，第二个为0.2259，第三个0.1049，第四个为0.0978，第五个0.0488，第六个是0.0233；
     前两个总共0.7252， 前四个是0.9279.
-    1：该特征很直观的可以发现Detergents paper的正向增长的同时，Milk和Grocery之间也十分相近的增长着，同时也带动了Delicatessen的正向增长。用户主要喜好这四个商品。
-    2：给特征很直观的体现了用户主要对于Fresh和Frozen的消费十分相近，而且第三大正权特征是Delicatessen，同时Milk和Grocery之间虽然占比重不大，但两者十分相似。用户主要对Fresh，Frozen和Delicatessen有较大需求。
-    3：很直观的可以看到Fresh的增长是一枝独秀。而同时Delicatessen则完全贡献出了复增长。而且也可以看到Frozen和Detergents Paper则也完全呈现负相关。用户主要对Fresh和Detergents Paper的增长做出了大量贡献。
-    4：在这个特征维度内，我们发现只有Frozen和Detergents Paper作出了正向贡献，而在负贡献中Delicatessen做出了绝大部分的负贡献，剩下的三个其他特征则做出了不同比例的负贡献。用户看似更追求Frozen和Detergents Paper。</p>
+    1：该特征很直观的可以发现Detergents paper的正向增长的同时，Milk和Grocery之间也十分相近的增长着，同时也带动了Delicatessen的正向增长。用户主要喜好这四个商品，我们可以猜测该用户群体可能代表着零售商。
+    2：给特征很直观的体现了用户主要对于Fresh和Frozen的消费十分相近，而且第三大正权特征是Delicatessen，同时Milk和Grocery之间虽然占比重不大，但两者十分相似。用户主要对Fresh，Frozen和Delicatessen有较大需求，我们可以猜测该用户群体可能代表着主营食材销售的商家。
+    3：很直观的可以看到Fresh的增长是一枝独秀。而同时Delicatessen则完全贡献出了复增长。而且也可以看到Frozen和Detergents Paper则也完全呈现负相关。用户主要对Fresh和Detergents Paper的增长做出了大量贡献，我们猜测这个用户群体可能代表着主要以新鲜食材为主的餐馆。
+    4：在这个特征维度内，我们发现只有Frozen和Detergents Paper作出了正向贡献，而在负贡献中Delicatessen做出了绝大部分的负贡献，剩下的三个其他特征则做出了不同比例的负贡献。用户看似更追求Frozen和Detergents Paper，这个用户群体可能代表着以销售冷冻产品为主的餐馆。</p>
 
 </div>
 </div>
