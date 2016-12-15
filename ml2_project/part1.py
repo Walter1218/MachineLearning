@@ -113,16 +113,15 @@ def guess(user_id, i_id, top_n):
     #print(n_users)
     for i in range(0, n_users):
         if i != (user_id-1):
-            #print("infor: ",user_id-1, i)
-            #print("infor",pcs_matrix[user_id - 1][i])
             similarity_list.append((pcs_matrix[user_id - 1][i],i + 1))
-    #print(similarity_list)
-    #print("the input data is",user_id, i_id, top_n)
     similarity_list.sort(key=lambda x:x[0],reverse=True)
     similarity_list = similarity_list[:top_n]
-    print(similarity_list)
+    #print(similarity_list)
     #TODO FINISHE HERE
-    return 0.
+    rating_topN = [ri-user[u-1].avg_r for u,ri in [(i,utility[i-1][i_id-1]) for v,i in similarity_list if utility[i-1][i_id-1]>0 ]]
+    avg = np.mean(rating_topN) if len(rating_topN)>0 else 0
+    #print(avg)
+    return abs(user[user_id-1].avg_r + avg)
 
 """
 Displays utility matrix and mean squared error.
