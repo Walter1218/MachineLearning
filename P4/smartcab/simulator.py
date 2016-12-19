@@ -33,8 +33,8 @@ class Simulator(object):
         'crimson' : (128,   0,   0),
         'gray'    : (155, 155, 155)
     }
-
-    def __init__(self, env, size=None, update_delay=2.0, display=True, log_metrics=False, optimized=False):
+    #2.0,display=True, log_metrics=False, optimized=False
+    def __init__(self, env, size=None, update_delay=0.01, display=False, log_metrics=True, optimized=True):
         self.env = env
         self.size = size if size is not None else ((self.env.grid_size[0] + 1) * self.env.block_size, (self.env.grid_size[1] + 2) * self.env.block_size)
         self.width, self.height = self.size
@@ -86,7 +86,7 @@ class Simulator(object):
         # Setup metrics to report
         self.log_metrics = log_metrics
         self.optimized = optimized
-        
+
         if self.log_metrics:
             a = self.env.primary_agent
 
@@ -95,21 +95,21 @@ class Simulator(object):
                 if self.optimized: # Whether the user is optimizing the parameters and decay functions
                     self.log_filename = os.path.join("logs", "sim_improved-learning.csv")
                     self.table_filename = os.path.join("logs","sim_improved-learning.txt")
-                else: 
+                else:
                     self.log_filename = os.path.join("logs", "sim_default-learning.csv")
                     self.table_filename = os.path.join("logs","sim_default-learning.txt")
 
                 self.table_file = open(self.table_filename, 'wb')
             else:
                 self.log_filename = os.path.join("logs", "sim_no-learning.csv")
-            
+
             self.log_fields = ['trial', 'testing', 'parameters', 'initial_deadline', 'final_deadline', 'net_reward', 'actions', 'success']
             self.log_file = open(self.log_filename, 'wb')
             self.log_writer = csv.DictWriter(self.log_file, fieldnames=self.log_fields)
             self.log_writer.writeheader()
-
-    def run(self, tolerance=0.05, n_test=0):
-        """ Run a simulation of the environment. 
+    # tolerance=0.05, n_test=10
+    def run(self, tolerance=0.05, n_test=10):
+        """ Run a simulation of the environment.
 
         'tolerance' is the minimum epsilon necessary to begin testing (if enabled)
         'n_test' is the number of testing trials simulated
@@ -137,14 +137,14 @@ class Simulator(object):
                     else:
                         testing = True
                         trial = 1
-                        
+
             # Break if we've reached the limit of testing trials
             else:
                 if trial > n_test:
                     break
 
             # Pretty print to terminal
-            print 
+            print
             print "/-------------------------"
             if testing:
                 print "| Testing trial {}".format(trial)
@@ -152,7 +152,7 @@ class Simulator(object):
                 print "| Training trial {}".format(trial)
 
             print "\-------------------------"
-            print 
+            print
 
             self.env.reset(testing)
             self.current_time = 0.0
@@ -181,7 +181,7 @@ class Simulator(object):
                     if self.current_time - self.last_updated >= self.update_delay:
                         self.env.step()
                         self.last_updated = self.current_time
-                    
+
                     # Render text
                     self.render_text(trial, testing)
 
@@ -229,7 +229,7 @@ class Simulator(object):
 
             if a.learning:
                 f = self.table_file
-                
+
                 f.write("/-----------------------------------------\n")
                 f.write("| State-action rewards from Q-Learning\n")
                 f.write("\-----------------------------------------\n\n")
@@ -238,7 +238,7 @@ class Simulator(object):
                     f.write("{}\n".format(state))
                     for action, reward in a.Q[state].iteritems():
                         f.write(" -- {} : {:.2f}\n".format(action, reward))
-                    f.write("\n")  
+                    f.write("\n")
                 self.table_file.close()
 
             self.log_file.close()
@@ -250,7 +250,7 @@ class Simulator(object):
             self.pygame.display.quit()  # shut down pygame
 
     def render_text(self, trial, testing=False):
-        """ This is the non-GUI render display of the simulation. 
+        """ This is the non-GUI render display of the simulation.
             Simulated trial data will be rendered in the terminal/command prompt. """
 
         status = self.env.step_data
@@ -282,7 +282,7 @@ class Simulator(object):
                     print "Agent attempted driving {} through traffic and cause a minor accident. (rewarded {:.2f})".format(status['action'], status['reward'])
                 elif status['violation'] == 4: # Major accident
                     print "Agent attempted driving {} through a red light with traffic and cause a major accident. (rewarded {:.2f})".format(status['action'], status['reward'])
-           
+
             # Time Remaining
             if self.env.enforce_deadline:
                 time = (status['deadline'] - 1) * 100.0 / (status['t'] + status['deadline'])
@@ -299,11 +299,11 @@ class Simulator(object):
             else:
                 print "Agent not set to learn."
 
-                
+
     def render(self, trial, testing=False):
-        """ This is the GUI render display of the simulation. 
+        """ This is the GUI render display of the simulation.
             Supplementary trial data can be found from render_text. """
-        
+
         # Reset the screen.
         self.screen.fill(self.bg_color)
 
@@ -312,27 +312,27 @@ class Simulator(object):
 
         # Boundary
         self.pygame.draw.rect(self.screen, self.boundary, ((self.env.bounds[0] - self.env.hang)*self.env.block_size, (self.env.bounds[1]-self.env.hang)*self.env.block_size, (self.env.bounds[2] + self.env.hang/3)*self.env.block_size, (self.env.bounds[3] - 1 + self.env.hang/3)*self.env.block_size), 4)
-        
+
         for road in self.env.roads:
             # Road
             self.pygame.draw.line(self.screen, self.road_color, (road[0][0] * self.env.block_size, road[0][1] * self.env.block_size), (road[1][0] * self.env.block_size, road[1][1] * self.env.block_size), self.road_width)
             # Center line
             self.pygame.draw.line(self.screen, self.line_color, (road[0][0] * self.env.block_size, road[0][1] * self.env.block_size), (road[1][0] * self.env.block_size, road[1][1] * self.env.block_size), 2)
-        
+
         for intersection, traffic_light in self.env.intersections.iteritems():
             self.pygame.draw.circle(self.screen, self.road_color, (intersection[0] * self.env.block_size, intersection[1] * self.env.block_size), self.road_width/2)
-            
+
             if traffic_light.state: # North-South is open
                 self.screen.blit(self._ns,
                     self.pygame.rect.Rect(intersection[0]*self.env.block_size - self.road_width/2, intersection[1]*self.env.block_size - self.road_width/2, intersection[0]*self.env.block_size + self.road_width, intersection[1]*self.env.block_size + self.road_width/2))
                 self.pygame.draw.line(self.screen, self.stop_color, (intersection[0] * self.env.block_size - self.road_width/2, intersection[1] * self.env.block_size - self.road_width/2), (intersection[0] * self.env.block_size - self.road_width/2, intersection[1] * self.env.block_size + self.road_width/2), 2)
-                self.pygame.draw.line(self.screen, self.stop_color, (intersection[0] * self.env.block_size + self.road_width/2 + 1, intersection[1] * self.env.block_size - self.road_width/2), (intersection[0] * self.env.block_size + self.road_width/2 + 1, intersection[1] * self.env.block_size + self.road_width/2), 2)            
+                self.pygame.draw.line(self.screen, self.stop_color, (intersection[0] * self.env.block_size + self.road_width/2 + 1, intersection[1] * self.env.block_size - self.road_width/2), (intersection[0] * self.env.block_size + self.road_width/2 + 1, intersection[1] * self.env.block_size + self.road_width/2), 2)
             else:
                 self.screen.blit(self._ew,
                     self.pygame.rect.Rect(intersection[0]*self.env.block_size - self.road_width/2, intersection[1]*self.env.block_size - self.road_width/2, intersection[0]*self.env.block_size + self.road_width, intersection[1]*self.env.block_size + self.road_width/2))
                 self.pygame.draw.line(self.screen, self.stop_color, (intersection[0] * self.env.block_size - self.road_width/2, intersection[1] * self.env.block_size - self.road_width/2), (intersection[0] * self.env.block_size + self.road_width/2, intersection[1] * self.env.block_size - self.road_width/2), 2)
-                self.pygame.draw.line(self.screen, self.stop_color, (intersection[0] * self.env.block_size + self.road_width/2, intersection[1] * self.env.block_size + self.road_width/2 + 1), (intersection[0] * self.env.block_size - self.road_width/2, intersection[1] * self.env.block_size + self.road_width/2 + 1), 2)            
-            
+                self.pygame.draw.line(self.screen, self.stop_color, (intersection[0] * self.env.block_size + self.road_width/2, intersection[1] * self.env.block_size + self.road_width/2 + 1), (intersection[0] * self.env.block_size - self.road_width/2, intersection[1] * self.env.block_size + self.road_width/2 + 1), 2)
+
         # * Dynamic elements
         self.font = self.pygame.font.Font(None, 20)
         for agent, state in self.env.agent_states.iteritems():
@@ -354,7 +354,7 @@ class Simulator(object):
                 # Draw simple agent (circle with a short line segment poking out to indicate heading)
                 self.pygame.draw.circle(self.screen, agent_color, agent_pos, self.agent_circle_radius)
                 self.pygame.draw.line(self.screen, agent_color, agent_pos, state['location'], self.road_width)
-            
+
 
             if state['destination'] is not None:
                 self.screen.blit(self._logo,
@@ -421,7 +421,7 @@ class Simulator(object):
                 self.screen.blit(self.font.render("{:.0f}% of time remaining to reach destination.".format(time), True, self.colors['black'], self.bg_color), (350, 100))
             else:
                 self.screen.blit(self.font.render("Agent not enforced to meet deadline.", True, self.colors['black'], self.bg_color), (350, 100))
-            
+
             # Denote whether a trial was a success or failure
             if (state['destination'] != state['location'] and state['deadline'] > 0) or (self.env.enforce_deadline is not True and state['destination'] != state['location']):
                 self.font = self.pygame.font.Font(None, 40)
@@ -447,7 +447,7 @@ class Simulator(object):
 
     def pause(self):
         """ When the GUI is enabled, this function will pause the simulation. """
-        
+
         abs_pause_time = time.time()
         self.font = self.pygame.font.Font(None, 30)
         pause_text = "Simulation Paused. Press any key to continue. . ."
