@@ -1,3 +1,3 @@
-# Udacity_Walter_MLND
+# MLND
 
-My Udacity MLND Solution
+My MLND Solution
